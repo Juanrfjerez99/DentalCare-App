@@ -1,4 +1,4 @@
-# dentalcare
+# DentalCare
 
 A new Flutter project.
 

@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'ui/screens/login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://shfppaqdbezxtwujkvfu.supabase.co',
+    anonKey: 'sb_publishable_cnY4wyNT7pr-gZa-hq9fWw_Tn23Uaex',
+  );
+
   runApp(const DentalCareApp());
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 
@@ -10,7 +11,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // CONTROLADORES PARA LEER EL CORREO Y LA CONTRASEÑA
+  final supabase = Supabase.instance.client;
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
@@ -38,7 +40,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 30),
 
-                  // LOGO
                   Center(
                     child: Image.asset(
                       'assets/LogoDentalCare.png',
@@ -77,7 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
 
-                        // CORREO
                         const Text(
                           'Correo',
                           style: TextStyle(fontWeight: FontWeight.w600),
@@ -99,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 20),
 
-                        // CONTRASEÑA
                         const Text(
                           'Contraseña',
                           style: TextStyle(fontWeight: FontWeight.w600),
@@ -121,7 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 28),
 
-                        // BOTÓN LOGIN
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -132,21 +130,67 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               elevation: 4,
                             ),
-                            onPressed: () {
-                              bool isAdmin = false;
+                            onPressed: () async {
+                              final email = emailController.text.trim();
+                              final password = passwordController.text.trim();
 
-                              // CREDENCIALES DEL ADMIN
-                              if (emailController.text.trim() == "dentista@gmail.com" &&
-                                  passwordController.text.trim() == "1234") {
-                                isAdmin = true;
+                              if (email.isEmpty || password.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Rellena todos los campos")),
+                                );
+                                return;
                               }
 
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => HomeScreen(isAdmin: isAdmin),
-                                ),
-                              );
+                              try {
+                                // LOGIN REAL CON SUPABASE
+                                final response = await supabase.auth.signInWithPassword(
+                                  email: email,
+                                  password: password,
+                                );
+
+                                final userId = response.user?.id;
+
+                                if (userId == null) {
+                                  throw Exception("No se pudo obtener el usuario");
+                                }
+
+                                // CONSULTAR ROL EN TABLA USUARIO
+                                final data = await supabase
+                                    .from('usuario')
+                                    .select('rol')
+                                    .eq('id', userId)
+                                    .single();
+
+                                final rol = data['rol'] ?? 'paciente';
+                                final isAdmin = rol == 'admin';
+
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HomeScreen(isAdmin: isAdmin),
+                                  ),
+                                );
+                              } catch (e) {
+                                String mensajeError = "Ha ocurrido un error inesperado.";
+
+                                if (e.toString().contains("invalid_credentials")) {
+                                  mensajeError = "Correo o contraseña incorrectos.";
+                                } else if (e.toString().contains("network")) {
+                                  mensajeError = "Error de conexión. Revisa tu internet.";
+                                } else if (e.toString().contains("timeout")) {
+                                  mensajeError = "El servidor tardó demasiado en responder.";
+                                }
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(mensajeError),
+                                    backgroundColor: Colors.red.shade600,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                              }
                             },
                             child: const Text(
                               'Iniciar sesión',

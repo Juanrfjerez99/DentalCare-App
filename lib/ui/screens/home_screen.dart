@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'appointments_screen.dart';
+import 'appointments_cliente_screen.dart';
+import 'appointments_dentista_screen.dart';
 import 'history_screen.dart';
 import 'chat_screen.dart';
 import 'settings_screen.dart';
@@ -16,15 +17,25 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
 
+  late final List<Widget> screens;
+
   @override
-  Widget build(BuildContext context) {
-    final screens = [
-      AppointmentsScreen(isAdmin: widget.isAdmin),
+  void initState() {
+    super.initState();
+
+    // 🔥 Aquí es donde cambiamos la pantalla de Citas según el rol
+    screens = [
+      widget.isAdmin
+          ? AppointmentsDentistaScreen()
+          : AppointmentsClienteScreen(),
       const HistoryScreen(),
       const ChatScreen(),
       const SettingsScreen(),
     ];
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,

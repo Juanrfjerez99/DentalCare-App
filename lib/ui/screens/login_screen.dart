@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'home_screen.dart';
 import 'register_screen.dart';
+import 'home_screen.dart';
+
+// Pantallas según rol
+import 'appointments_cliente_screen.dart';
+import 'appointments_dentista_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,9 +16,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final supabase = Supabase.instance.client;
-
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  String _selectedRole = 'cliente';
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Colors.blue.shade50,
-            ],
+            colors: [Colors.white, Colors.blue.shade50],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -37,18 +39,14 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-
                   const SizedBox(height: 30),
-
                   Center(
                     child: Image.asset(
                       'assets/LogoDentalCare.png',
                       height: 180,
                     ),
                   ),
-
                   const SizedBox(height: 2),
-
                   Text(
                     'Gestión de citas para tu clínica dental',
                     textAlign: TextAlign.center,
@@ -58,9 +56,45 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.blue.shade700,
                     ),
                   ),
-
                   const SizedBox(height: 32),
 
+                  // 🔹 Selector de rol
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Cliente'),
+                          selected: _selectedRole == 'cliente',
+                          onSelected: (_) => setState(() => _selectedRole = 'cliente'),
+                          selectedColor: Colors.blue.shade100,
+                        ),
+                        const SizedBox(width: 12),
+                        ChoiceChip(
+                          label: const Text('Dentista'),
+                          selected: _selectedRole == 'dentista',
+                          onSelected: (_) => setState(() => _selectedRole = 'dentista'),
+                          selectedColor: Colors.blue.shade100,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 🔹 Formulario
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
@@ -70,18 +104,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         BoxShadow(
                           color: Colors.black12,
                           blurRadius: 14,
-                          offset: Offset(0, 5),
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-
-                        const Text(
-                          'Correo',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        const Text('Correo', style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: emailController,
@@ -96,13 +126,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 20),
-
-                        const Text(
-                          'Contraseña',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        const Text('Contraseña', style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: passwordController,
@@ -117,9 +142,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 28),
 
+                        // 🔹 Botón de login
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -142,62 +167,96 @@ class _LoginScreenState extends State<LoginScreen> {
                               }
 
                               try {
-                                // LOGIN REAL CON SUPABASE
+                                // 1️⃣ Login normal
                                 final response = await supabase.auth.signInWithPassword(
                                   email: email,
                                   password: password,
                                 );
 
                                 final userId = response.user?.id;
+                                if (userId == null) throw Exception("No se pudo obtener el usuario");
 
-                                if (userId == null) {
-                                  throw Exception("No se pudo obtener el usuario");
-                                }
-
-                                // CONSULTAR ROL EN TABLA USUARIO
-                                final data = await supabase
+                                // 2️⃣ Buscar en ambas tablas
+                                final usuario = await supabase
                                     .from('usuario')
                                     .select('rol')
                                     .eq('id', userId)
-                                    .single();
+                                    .maybeSingle();
 
-                                final rol = data['rol'] ?? 'paciente';
-                                final isAdmin = rol == 'admin';
+                                final dentista = await supabase
+                                    .from('dentista')
+                                    .select('rol')
+                                    .eq('id', userId)
+                                    .maybeSingle();
 
+                                // 3️⃣ Determinar rol real
+                                String? rolReal;
+                                if (usuario != null) rolReal = usuario['rol'];
+                                if (dentista != null) rolReal = dentista['rol'];
+
+                                if (rolReal == null) {
+                                  throw Exception("ROL_NO_ENCONTRADO");
+                                }
+
+                                // 4️⃣ Validación estricta
+                                if (_selectedRole == 'cliente' && rolReal != 'paciente') {
+                                  throw Exception("ROL_INCORRECTO");
+                                }
+
+                                if (_selectedRole == 'dentista' && rolReal != 'dentista') {
+                                  throw Exception("ROL_INCORRECTO");
+                                }
+
+                                // 5️⃣ Acceso permitido → Pantalla según rol real
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => HomeScreen(isAdmin: isAdmin),
+                                    builder: (_) => HomeScreen(
+                                      isAdmin: rolReal == 'dentista',
+                                    ),
                                   ),
                                 );
                               } catch (e) {
-                                String mensajeError = "Ha ocurrido un error inesperado.";
+                                // Error de rol incorrecto
+                                if (e.toString().contains("ROL_INCORRECTO")) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("No puedes iniciar sesión con este tipo de cuenta."),
+                                      backgroundColor: Colors.red.shade600,
+                                    ),
+                                  );
+                                  await supabase.auth.signOut();
+                                  return;
+                                }
 
+                                if (e.toString().contains("ROL_NO_ENCONTRADO")) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Tu cuenta no está configurada correctamente."),
+                                      backgroundColor: Colors.red.shade600,
+                                    ),
+                                  );
+                                  await supabase.auth.signOut();
+                                  return;
+                                }
+
+                                // Otros errores
+                                String mensajeError = "Ha ocurrido un error inesperado.";
                                 if (e.toString().contains("invalid_credentials")) {
                                   mensajeError = "Correo o contraseña incorrectos.";
-                                } else if (e.toString().contains("network")) {
-                                  mensajeError = "Error de conexión. Revisa tu internet.";
-                                } else if (e.toString().contains("timeout")) {
-                                  mensajeError = "El servidor tardó demasiado en responder.";
                                 }
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(mensajeError),
                                     backgroundColor: Colors.red.shade600,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    duration: const Duration(seconds: 3),
                                   ),
                                 );
                               }
                             },
                             child: const Text(
                               'Iniciar sesión',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
@@ -208,7 +267,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
                             );
                           },
                           child: Text(

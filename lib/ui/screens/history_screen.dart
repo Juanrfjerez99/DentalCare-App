@@ -1,7 +1,88 @@
 import 'package:flutter/material.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  // Lista dinámica del historial
+  List<Map<String, String>> historial = [
+    {
+      "tratamiento": "Limpieza dental",
+      "paciente": "Juan Pérez",
+      "fecha": "19 Mar 2026"
+    },
+    {
+      "tratamiento": "Empaste",
+      "paciente": "María López",
+      "fecha": "20 Mar 2026"
+    },
+    {
+      "tratamiento": "Ortodoncia",
+      "paciente": "Carlos Ruiz",
+      "fecha": "22 Mar 2026"
+    },
+    {
+      "tratamiento": "Extracción",
+      "paciente": "Ana Torres",
+      "fecha": "25 Mar 2026"
+    },
+  ];
+
+  // Confirmación para borrar TODO el historial
+  void _confirmarEliminarTodo() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Eliminar historial"),
+        content: const Text("¿Seguro que quieres eliminar todo el historial?"),
+        actions: [
+          TextButton(
+            child: const Text("Cancelar"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text("Eliminar", style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              setState(() {
+                historial.clear();
+              });
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Confirmación para borrar un elemento
+  void _confirmarEliminarItem(int index) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Eliminar entrada"),
+        content: const Text("¿Seguro que quieres eliminar esta entrada?"),
+        actions: [
+          TextButton(
+            child: const Text("Cancelar"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text("Eliminar", style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              setState(() {
+                historial.removeAt(index);
+              });
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,41 +106,47 @@ class HistoryScreen extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              Text(
-                "Historial",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Historial",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+
+                  // Botón para borrar todo
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    onPressed: historial.isEmpty ? null : _confirmarEliminarTodo,
+                  ),
+                ],
               ),
 
               const SizedBox(height: 16),
 
               Expanded(
-                child: ListView(
-                  children: const [
-                    HistoryItem(
-                      fecha: "19 Mar 2026",
-                      paciente: "Juan Pérez",
-                      tratamiento: "Limpieza dental",
-                    ),
-                    HistoryItem(
-                      fecha: "20 Mar 2026",
-                      paciente: "María López",
-                      tratamiento: "Empaste",
-                    ),
-                    HistoryItem(
-                      fecha: "22 Mar 2026",
-                      paciente: "Carlos Ruiz",
-                      tratamiento: "Ortodoncia",
-                    ),
-                    HistoryItem(
-                      fecha: "25 Mar 2026",
-                      paciente: "Ana Torres",
-                      tratamiento: "Extracción",
-                    ),
-                  ],
+                child: historial.isEmpty
+                    ? const Center(
+                  child: Text(
+                    "No hay historial disponible",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                )
+                    : ListView.builder(
+                  itemCount: historial.length,
+                  itemBuilder: (context, index) {
+                    final item = historial[index];
+                    return HistoryItem(
+                      tratamiento: item["tratamiento"]!,
+                      paciente: item["paciente"]!,
+                      fecha: item["fecha"]!,
+                      onDelete: () => _confirmarEliminarItem(index),
+                    );
+                  },
                 ),
               ),
             ],
@@ -71,26 +158,21 @@ class HistoryScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------
-// TARJETA DE HISTORIAL INTERACTIVA
+// TARJETA DE HISTORIAL CON PAPELERA
 // ---------------------------------------------------
-class HistoryItem extends StatefulWidget {
+class HistoryItem extends StatelessWidget {
   final String fecha;
   final String paciente;
   final String tratamiento;
+  final VoidCallback onDelete;
 
   const HistoryItem({
     super.key,
     required this.fecha,
     required this.paciente,
     required this.tratamiento,
+    required this.onDelete,
   });
-
-  @override
-  State<HistoryItem> createState() => _HistoryItemState();
-}
-
-class _HistoryItemState extends State<HistoryItem> {
-  bool completed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -102,38 +184,14 @@ class _HistoryItemState extends State<HistoryItem> {
       ),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: GestureDetector(
-          onTap: () {
-            setState(() {
-              completed = !completed;
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: completed ? Colors.blue.shade700 : Colors.white,
-              border: Border.all(
-                color: completed ? Colors.blue.shade700 : Colors.grey.shade400,
-                width: 2,
-              ),
-            ),
-            child: completed
-                ? const Icon(Icons.check, color: Colors.white, size: 20)
-                : null,
-          ),
-        ),
         title: Text(
-          widget.tratamiento,
+          tratamiento,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text("${widget.paciente} • ${widget.fecha}"),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.blue.shade700,
+        subtitle: Text("$paciente • $fecha"),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red),
+          onPressed: onDelete,
         ),
       ),
     );

@@ -13,18 +13,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final claveController = TextEditingController();
 
-  // Traducción de errores de Supabase
+  String _selectedRole = 'cliente';
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   String translateSupabaseError(Object e) {
     final error = e.toString();
-
     if (error.contains("AuthWeakPasswordException")) {
       return "La contraseña debe tener al menos 6 caracteres.";
     }
-    if (error.contains("AuthException") && error.contains("email")) {
+    if (error.contains("email")) {
       return "El correo no es válido o ya está registrado.";
     }
-    if (error.contains("AuthException") && error.contains("Invalid login credentials")) {
+    if (error.contains("Invalid login credentials")) {
       return "Correo o contraseña incorrectos.";
     }
     return "Ocurrió un error inesperado. Inténtalo de nuevo.";
@@ -40,6 +51,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       showCustomSnackBar("Por favor, completa todos los campos.", Colors.orange);
       return;
     }
+    // Validación de clave para dentista
+    if (_selectedRole == 'dentista') {
+      const String CLAVE_DENTISTA = "Dentista1234";
+
+      if (claveController.text.trim() != CLAVE_DENTISTA) {
+        setState(() => _loading = false);
+        showCustomSnackBar("Clave incorrecta. No puedes registrarte como dentista.", Colors.red);
+        return;
+      }
+    }
+
+    setState(() => _loading = true);
 
     try {
       // 1. Crear usuario en Supabase Auth
@@ -49,26 +72,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       final user = response.user;
-
       if (user == null) {
+        setState(() => _loading = false);
         showCustomSnackBar("No se pudo crear el usuario.", Colors.red);
         return;
       }
 
+      // 2. Insertar en tabla según rol seleccionado
+      final tableName = _selectedRole == 'cliente' ? 'usuario' : 'dentista';
 
-      // 2. Actualizar tabla 'usuario'
-      await Supabase.instance.client.from('usuario').update({
-        'nombre': name,
-        'telefono': phone,
-        'rol': 'paciente',
-      }).eq('id', user.id);
+      if (_selectedRole == 'cliente') {
+        // La tabla 'usuario' ya tiene una fila creada automáticamente
+        await Supabase.instance.client.from('usuario').update({
+          'nombre': name,
+          'telefono': phone,
+          'correo': email,
+          'rol': 'paciente',
+        }).eq('id', user.id);
+      } else {
+        // La tabla 'dentista' NO tiene fila automática → insert funciona
+        await Supabase.instance.client.from('dentista').insert({
+          'id': user.id,
+          'nombre': name,
+          'telefono': phone,
+          'correo': email,
+          'rol': 'dentista',
+        });
+      }
 
-
+      setState(() => _loading = false);
       showCustomSnackBar("Cuenta creada correctamente.", Colors.green);
 
       Navigator.pop(context);
 
     } catch (e) {
+      setState(() => _loading = false);
       showCustomSnackBar(translateSupabaseError(e), Colors.red);
     }
   }
@@ -113,10 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Colors.blue.shade50,
-            ],
+            colors: [Colors.white, Colors.blue.shade50],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -128,10 +163,94 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-
                   const SizedBox(height: 10),
 
-                  // CARD DEL FORMULARIO
+                  // 🔹 Selector tipo imagen (Cliente / Dentista)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedRole = 'cliente'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _selectedRole == 'cliente'
+                                    ? Colors.blue.shade100
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _selectedRole == 'cliente'
+                                      ? Colors.blue.shade400
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Cliente',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _selectedRole == 'cliente'
+                                        ? Colors.blue.shade700
+                                        : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedRole = 'dentista'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _selectedRole == 'dentista'
+                                    ? Colors.blue.shade100
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _selectedRole == 'dentista'
+                                      ? Colors.blue.shade400
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Dentista',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _selectedRole == 'dentista'
+                                        ? Colors.blue.shade700
+                                        : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 🔹 Formulario
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
@@ -141,19 +260,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         BoxShadow(
                           color: Colors.black12,
                           blurRadius: 14,
-                          offset: Offset(0, 5),
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-
-                        // NOMBRE
-                        const Text(
-                          "Nombre",
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        const Text("Nombre", style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: nameController,
@@ -167,14 +281,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 20),
 
-                        // TELÉFONO
-                        const Text(
-                          "Teléfono",
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        const Text("Teléfono", style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: phoneController,
@@ -189,14 +298,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 20),
 
-                        // CORREO
-                        const Text(
-                          "Correo",
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        const Text("Correo", style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: emailController,
@@ -211,14 +315,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 20),
 
-                        // CONTRASEÑA
-                        const Text(
-                          "Contraseña",
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        const Text("Contraseña", style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: passwordController,
@@ -233,10 +332,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 20),
+
+                        if (_selectedRole == 'dentista') ...[
+                          SizedBox(height: 16),
+                          TextField(
+                            controller: claveController,
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              labelText: "Clave dentista",
+                              hintText: "Introduce la clave",
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: 28),
 
-                        // BOTÓN REGISTRO
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -247,8 +358,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               elevation: 4,
                             ),
-                            onPressed: registerUser,
-                            child: const Text(
+                            onPressed: _loading ? null : registerUser,
+                            child: _loading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text(
                               "Registrarse",
                               style: TextStyle(
                                 fontSize: 17,

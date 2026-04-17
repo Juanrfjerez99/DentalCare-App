@@ -1,8 +1,54 @@
 import 'package:flutter/material.dart';
 import 'chat_detail_screen.dart';
 
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  bool _loading = true;
+
+  // Datos de ejemplo (antes venían de SQLite)
+  List<Map<String, dynamic>> _patients = [
+    {
+      'name': 'Juan Pérez',
+      'message': 'Gracias',
+      'time': '10:45',
+    },
+    {
+      'name': 'María López',
+      'message': '¿Cómo puedo pedir revisión?',
+      'time': '09:12',
+    },
+    {
+      'name': 'Carlos Ruiz',
+      'message': 'Perfecto, nos vemos mañana',
+      'time': 'Ayer',
+    },
+    {
+      'name': 'Ana Torres',
+      'message': 'Muchas Gracias',
+      'time': 'Ayer',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+
+    // Simulación de carga (antes era db.listPatients())
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +69,8 @@ class ChatScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               const SizedBox(height: 10),
 
-              // TÍTULO
               Text(
                 "Chat",
                 style: TextStyle(
@@ -39,33 +83,17 @@ class ChatScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               Expanded(
-                child: ListView(
-                  children: [
-                    _chatTile(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                  children: _patients.map((p) {
+                    return _chatTile(
                       context: context,
-                      nombre: "Juan Pérez",
-                      mensaje: "Gracias",
-                      hora: "10:45",
-                    ),
-                    _chatTile(
-                      context: context,
-                      nombre: "María López",
-                      mensaje: "¿Cómo puedo pedir revisión?",
-                      hora: "09:12",
-                    ),
-                    _chatTile(
-                      context: context,
-                      nombre: "Carlos Ruiz",
-                      mensaje: "Perfecto, nos vemos mañana",
-                      hora: "Ayer",
-                    ),
-                    _chatTile(
-                      context: context,
-                      nombre: "Ana Torres",
-                      mensaje: "Muchas Gracias",
-                      hora: "Ayer",
-                    ),
-                  ],
+                      nombre: p['name'],
+                      mensaje: p['message'],
+                      hora: p['time'],
+                    );
+                  }).toList(),
                 ),
               ),
             ],
@@ -75,9 +103,6 @@ class ChatScreen extends StatelessWidget {
     );
   }
 
-  // ---------------------------------------------------
-  // TARJETA DE CHAT
-  // ---------------------------------------------------
   Widget _chatTile({
     required BuildContext context,
     required String nombre,

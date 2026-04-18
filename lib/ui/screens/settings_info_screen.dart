@@ -6,7 +6,7 @@ class SettingsInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // APPBAR PROFESIONAL
+      // APPBAR
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -21,7 +21,7 @@ class SettingsInfoScreen extends StatelessWidget {
         ),
       ),
 
-      // FONDO DEGRADADO COMPLETO
+      // FONDO DEGRADADO
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -94,7 +94,7 @@ class SettingsInfoScreen extends StatelessWidget {
                 ),
               ),
 
-              // TARJETA: DESARROLLADORES (CORREGIDA)
+              // TARJETA: DESARROLLADORES
               _infoCard(
                 title: "Desarrollo",
                 contentWidget: Row(

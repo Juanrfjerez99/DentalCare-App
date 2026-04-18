@@ -91,7 +91,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              // 🔹 Título
+              // Título
               Text(
                 "Citas del día",
                 style: TextStyle(
@@ -103,7 +103,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 16),
 
-              // 🔹 Selector de fecha
+              // Selector de fecha
               Row(
                 children: [
                   Expanded(
@@ -126,7 +126,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 20),
 
-              // 🔹 Resumen del día (solo dentista)
+              // Resumen del día
               Card(
                 elevation: 3,
                 shadowColor: Colors.black12,
@@ -157,7 +157,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 20),
 
-              // 🔹 Lista de citas
+              // Lista de citas
               if (_loading)
                 const Center(
                   child: Padding(
@@ -207,7 +207,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
   }
 
   // ---------------------------------------------------
-  // PASTILLA DE RESUMEN
+  // TARJETA DE RESUMEN
   // ---------------------------------------------------
   Widget _pill(String label, String value) {
     return Container(

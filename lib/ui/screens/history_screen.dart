@@ -32,7 +32,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     },
   ];
 
-  // Confirmación para borrar TODO el historial
+  // Confirmación para borrar todo el historial
   void _confirmarEliminarTodo() {
     showDialog(
       context: context,

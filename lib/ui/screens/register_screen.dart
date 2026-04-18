@@ -82,7 +82,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final tableName = _selectedRole == 'cliente' ? 'usuario' : 'dentista';
 
       if (_selectedRole == 'cliente') {
-        // La tabla 'usuario' ya tiene una fila creada automáticamente
         await Supabase.instance.client.from('usuario').update({
           'nombre': name,
           'telefono': phone,
@@ -90,7 +89,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'rol': 'paciente',
         }).eq('id', user.id);
       } else {
-        // La tabla 'dentista' NO tiene fila automática → insert funciona
         await Supabase.instance.client.from('dentista').insert({
           'id': user.id,
           'nombre': name,
@@ -165,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const SizedBox(height: 10),
 
-                  // 🔹 Selector tipo imagen (Cliente / Dentista)
+                  // Selector tipo imagen (Cliente / Dentista)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                     decoration: BoxDecoration(
@@ -250,7 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // 🔹 Formulario
+                  // Formulario
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(

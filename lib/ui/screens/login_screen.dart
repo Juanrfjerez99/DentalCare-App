@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // 🔹 Selector de rol
+                  // Selector de rol
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 24),
 
-                  // 🔹 Formulario
+                  // Formulario
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 28),
 
-                        // 🔹 Botón de login
+                        // Botón de login
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               }
 
                               try {
-                                // 1️⃣ Login normal
+                                // 1. Login normal
                                 final response = await supabase.auth.signInWithPassword(
                                   email: email,
                                   password: password,
@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 final userId = response.user?.id;
                                 if (userId == null) throw Exception("No se pudo obtener el usuario");
 
-                                // 2️⃣ Buscar en ambas tablas
+                                // 2. Buscar en ambas tablas
                                 final usuario = await supabase
                                     .from('usuario')
                                     .select('rol')
@@ -189,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     .eq('id', userId)
                                     .maybeSingle();
 
-                                // 3️⃣ Determinar rol real
+                                // 3. Determinar rol real
                                 String? rolReal;
                                 if (usuario != null) rolReal = usuario['rol'];
                                 if (dentista != null) rolReal = dentista['rol'];
@@ -198,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   throw Exception("ROL_NO_ENCONTRADO");
                                 }
 
-                                // 4️⃣ Validación estricta
+                                // 4. Validación estricta
                                 if (_selectedRole == 'cliente' && rolReal != 'paciente') {
                                   throw Exception("ROL_INCORRECTO");
                                 }
@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   throw Exception("ROL_INCORRECTO");
                                 }
 
-                                // 5️⃣ Acceso permitido → Pantalla según rol real
+                                // 5. Acceso permitido → Pantalla según rol
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(

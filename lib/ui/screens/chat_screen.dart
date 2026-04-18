@@ -11,7 +11,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   bool _loading = true;
 
-  // Datos de ejemplo (antes venían de SQLite)
+  // Datos de ejemplo
   List<Map<String, dynamic>> _patients = [
     {
       'name': 'Juan Pérez',
@@ -44,7 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
 
-    // Simulación de carga (antes era db.listPatients())
+    // Simulación de carga
     await Future.delayed(const Duration(milliseconds: 400));
 
     setState(() => _loading = false);

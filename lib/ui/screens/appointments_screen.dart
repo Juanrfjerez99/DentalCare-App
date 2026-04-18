@@ -301,7 +301,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   // ---------------------------------------------------
-  // MENÚ DE ACCIONES (solo Admin)
+  // MENÚ DE ACCIONES
   // ---------------------------------------------------
   void _showAppointmentActions(String hora, String paciente) {
     showModalBottomSheet(
@@ -388,7 +388,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 }
 
 // ---------------------------------------------------
-// ETIQUETA DE DÍA DE LA SEMANA
+// ETIQUETA DÍA DE LA SEMANA
 // ---------------------------------------------------
 class _WeekdayLabel extends StatelessWidget {
   final String text;

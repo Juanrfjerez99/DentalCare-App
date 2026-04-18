@@ -17,7 +17,7 @@ class _SettingsNotificationsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // APPBAR PROFESIONAL
+      // APPBAR
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -73,7 +73,7 @@ class _SettingsNotificationsScreenState
   }
 
   // ---------------------------------------------------
-  // TARJETA DE SWITCH PROFESIONAL
+  // TARJETA DE SWITCH
   // ---------------------------------------------------
   Widget _switchCard({
     required String title,

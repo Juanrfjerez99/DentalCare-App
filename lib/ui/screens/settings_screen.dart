@@ -100,7 +100,7 @@ class SettingsScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // BOTÓN CERRAR SESIÓN PROFESIONAL
+              // BOTÓN CERRAR SESIÓN
               Center(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(

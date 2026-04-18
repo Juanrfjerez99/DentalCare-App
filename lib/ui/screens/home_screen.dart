@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    // 🔥 Aquí es donde cambiamos la pantalla de Citas según el rol
+    // Pantalla de Citas según el rol
     screens = [
       widget.isAdmin
           ? AppointmentsDentistaScreen()

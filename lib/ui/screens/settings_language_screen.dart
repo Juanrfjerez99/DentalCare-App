@@ -55,7 +55,7 @@ class _SettingsLanguageScreenState extends State<SettingsLanguageScreen> {
   }
 
   // ---------------------------------------------------
-  // TARJETA DE IDIOMA PROFESIONAL
+  // TARJETA DE IDIOMA
   // ---------------------------------------------------
   Widget _languageTile(String idioma) {
     final bool isSelected = selected == idioma;

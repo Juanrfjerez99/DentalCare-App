@@ -6,7 +6,7 @@ class SettingsProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // APPBAR PROFESIONAL
+      // APPBAR
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -41,7 +41,7 @@ class SettingsProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                // AVATAR PROFESIONAL
+                // AVATAR
                 CircleAvatar(
                   radius: 55,
                   backgroundColor: Colors.blue.shade700,
@@ -121,7 +121,7 @@ class SettingsProfileScreen extends StatelessWidget {
   }
 
   // ---------------------------------------------------
-  // INPUT FIELD PROFESIONAL
+  // INPUT FIELD
   // ---------------------------------------------------
   Widget _inputField({
     required String label,

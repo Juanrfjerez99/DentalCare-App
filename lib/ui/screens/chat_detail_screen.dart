@@ -8,7 +8,7 @@ class ChatDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // APPBAR PROFESIONAL
+      // APPBAR
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -53,7 +53,7 @@ class ChatDetailScreen extends StatelessWidget {
               ),
             ),
 
-            // CAJA DE TEXTO INFERIOR PROFESIONAL
+            // CAJA DE TEXTO INFERIOR
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
@@ -99,7 +99,7 @@ class ChatDetailScreen extends StatelessWidget {
   }
 
   // ---------------------------------------------------
-  // BURBUJA DE MENSAJE PROFESIONAL
+  // BURBUJA DE MENSAJE
   // ---------------------------------------------------
   Widget _messageBubble({
     required String texto,

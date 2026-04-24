@@ -3,10 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 
-// Pantallas según rol
-import 'appointments_cliente_screen.dart';
-import 'appointments_dentista_screen.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,8 +14,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final supabase = Supabase.instance.client;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-
-  String _selectedRole = 'cliente';
 
   @override
   Widget build(BuildContext context) {
@@ -58,43 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Selector de rol
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Cliente'),
-                          selected: _selectedRole == 'cliente',
-                          onSelected: (_) => setState(() => _selectedRole = 'cliente'),
-                          selectedColor: Colors.blue.shade100,
-                        ),
-                        const SizedBox(width: 12),
-                        ChoiceChip(
-                          label: const Text('Dentista'),
-                          selected: _selectedRole == 'dentista',
-                          onSelected: (_) => setState(() => _selectedRole = 'dentista'),
-                          selectedColor: Colors.blue.shade100,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Formulario
+                  // FORMULARIO
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
@@ -144,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 28),
 
-                        // Botón de login
+                        // BOTÓN LOGIN
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -176,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 final userId = response.user?.id;
                                 if (userId == null) throw Exception("No se pudo obtener el usuario");
 
-                                // 2. Buscar en ambas tablas
+                                // 2. Buscar rol en ambas tablas
                                 final usuario = await supabase
                                     .from('usuario')
                                     .select('rol')
@@ -198,16 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   throw Exception("ROL_NO_ENCONTRADO");
                                 }
 
-                                // 4. Validación estricta
-                                if (_selectedRole == 'cliente' && rolReal != 'paciente') {
-                                  throw Exception("ROL_INCORRECTO");
-                                }
-
-                                if (_selectedRole == 'dentista' && rolReal != 'dentista') {
-                                  throw Exception("ROL_INCORRECTO");
-                                }
-
-                                // 5. Acceso permitido → Pantalla según rol
+                                // 4. Navegar a HomeScreen según rol
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
@@ -217,33 +166,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 );
                               } catch (e) {
-                                // Error de rol incorrecto
-                                if (e.toString().contains("ROL_INCORRECTO")) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("No puedes iniciar sesión con este tipo de cuenta."),
-                                      backgroundColor: Colors.red.shade600,
-                                    ),
-                                  );
-                                  await supabase.auth.signOut();
-                                  return;
+                                String mensajeError = "Ha ocurrido un error inesperado.";
+
+                                if (e.toString().contains("invalid_credentials")) {
+                                  mensajeError = "Correo o contraseña incorrectos.";
                                 }
 
                                 if (e.toString().contains("ROL_NO_ENCONTRADO")) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("Tu cuenta no está configurada correctamente."),
-                                      backgroundColor: Colors.red.shade600,
-                                    ),
-                                  );
-                                  await supabase.auth.signOut();
-                                  return;
-                                }
-
-                                // Otros errores
-                                String mensajeError = "Ha ocurrido un error inesperado.";
-                                if (e.toString().contains("invalid_credentials")) {
-                                  mensajeError = "Correo o contraseña incorrectos.";
+                                  mensajeError = "Tu cuenta no está configurada correctamente.";
                                 }
 
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -252,6 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     backgroundColor: Colors.red.shade600,
                                   ),
                                 );
+
+                                await supabase.auth.signOut();
                               }
                             },
                             child: const Text(

@@ -51,6 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       showCustomSnackBar("Por favor, completa todos los campos.", Colors.orange);
       return;
     }
+
     // Validación de clave para dentista
     if (_selectedRole == 'dentista') {
       const String CLAVE_DENTISTA = "Dentista1234";
@@ -78,17 +79,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
-      // 2. Insertar en tabla según rol seleccionado
-      final tableName = _selectedRole == 'cliente' ? 'usuario' : 'dentista';
+      // 2. Insertar SIEMPRE en tabla usuario
+      await Supabase.instance.client.from('usuario').insert({
+        'id': user.id,
+        'nombre': name,
+        'telefono': phone,
+        'correo': email,
+        'rol': _selectedRole == 'cliente' ? 'paciente' : 'dentista',
+      });
 
-      if (_selectedRole == 'cliente') {
-        await Supabase.instance.client.from('usuario').update({
-          'nombre': name,
-          'telefono': phone,
-          'correo': email,
-          'rol': 'paciente',
-        }).eq('id', user.id);
-      } else {
+      // 3. Si es dentista, insertar también en tabla dentista
+      if (_selectedRole == 'dentista') {
         await Supabase.instance.client.from('dentista').insert({
           'id': user.id,
           'nombre': name,
@@ -163,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const SizedBox(height: 10),
 
-                  // Selector tipo imagen (Cliente / Dentista)
+                  // Selector (Cliente / Dentista)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                     decoration: BoxDecoration(

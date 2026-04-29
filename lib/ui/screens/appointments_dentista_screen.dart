@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/citas_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppointmentsDentistaScreen extends StatefulWidget {
   const AppointmentsDentistaScreen({super.key});
@@ -8,68 +10,108 @@ class AppointmentsDentistaScreen extends StatefulWidget {
 }
 
 class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen> {
+  final int _dentistaId = 1;
+
   DateTime _day = DateTime.now();
   List<Map<String, dynamic>> _items = [];
+  List<DateTime> _diasConCitas = [];
+
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadDiasConCitas();
   }
 
+  // ============================================================
+  // CARGAR CITAS DEL DÍA
+  // ============================================================
   Future<void> _load() async {
-    setState(() => _loading = true);
+    try {
+      final data = await CitasService().getCitasPorDia(
+        dentistaId: _dentistaId,
+        fecha: _day,
+      );
 
-    await Future.delayed(const Duration(milliseconds: 400));
+      print("CITAS RECIBIDAS: ${data.length}");
+      print(data);
 
-    _items = [
-      {
-        'id': 1,
-        'date': '2025-01-10',
-        'hour': '10:00',
-        'reason': 'Limpieza dental',
-        'status': 'pending',
-        'patient_name': 'Juan Pérez',
-      },
-      {
-        'id': 2,
-        'date': '2025-01-10',
-        'hour': '12:00',
-        'reason': 'Revisión',
-        'status': 'confirmed',
-        'patient_name': 'María López',
-      },
-      {
-        'id': 3,
-        'date': '2025-01-11',
-        'hour': '09:00',
-        'reason': 'Empaste',
-        'status': 'completed',
-        'patient_name': 'Carlos Ruiz',
-      },
-    ];
+      _items = data.map((cita) {
+        return {
+          'id': cita['id'],
+          'date': cita['fecha'],
+          'hour': cita['hora'].substring(0, 5),
+          'reason': cita['motivo'] ?? 'Cita',
+          'status': cita['estado'],
+          'patient_name': cita['usuario']['nombre'] ?? 'Paciente',
+        };
+      }).toList();
+
+    } catch (e) {
+      print("ERROR EN _load(): $e");
+    }
+
+    setState(() => _loading = false);
+
+    final data = await CitasService().getCitasPorDia(
+      dentistaId: _dentistaId,
+      fecha: _day,
+    );
+
+    _items = data.map((cita) {
+      return {
+        'id': cita['id_cita'],
+        'date': cita['fecha'],
+        'hour': cita['hora'].substring(0, 5),
+        'reason': cita['motivo'] ?? 'Cita',
+        'status': cita['estado'],
+        'patient_name': cita['usuario']['nombre'] ?? 'Paciente',
+      };
+    }).toList();
 
     setState(() => _loading = false);
   }
 
-  Future<void> _pickDay() async {
-    final selected = await showDatePicker(
-      context: context,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDate: _day,
+  // ============================================================
+  // CARGAR DÍAS DEL MES CON CITAS
+  // ============================================================
+  Future<void> _loadDiasConCitas() async {
+    _diasConCitas = await CitasService().getDiasConCitas(
+      dentistaId: _dentistaId,
+      year: _day.year,
+      month: _day.month,
     );
-    if (selected == null) return;
-    setState(() => _day = selected);
-    await _load();
+    setState(() {});
   }
 
+  // ============================================================
+  // ABRIR CALENDARIO PERSONALIZADO
+  // ============================================================
+  Future<void> _pickDay() async {
+    await _loadDiasConCitas();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _calendarWidget(),
+    );
+  }
+
+  // ============================================================
+  // CAMBIAR ESTADO DE UNA CITA
+  // ============================================================
   Future<void> _changeStatus(Map<String, dynamic> row, String status) async {
-    setState(() {
-      row['status'] = status;
-    });
-    await Future.delayed(const Duration(milliseconds: 200));
+    row['status'] = status;
+
+    await CitasService().supabase
+        .from('cita')
+        .update({'estado': status})
+        .eq('id_cita', row['id']);
+
     await _load();
   }
 
@@ -91,7 +133,6 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              // Título
               Text(
                 "Citas del día",
                 style: TextStyle(
@@ -103,7 +144,6 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 16),
 
-              // Selector de fecha
               Row(
                 children: [
                   Expanded(
@@ -126,7 +166,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 20),
 
-              // Resumen del día
+              // RESUMEN
               Card(
                 elevation: 3,
                 shadowColor: Colors.black12,
@@ -138,18 +178,12 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
                     runSpacing: 12,
                     children: [
                       _pill("Total", _items.length.toString()),
-                      _pill(
-                        "Pendientes",
-                        _items.where((e) => e['status'] == 'pending').length.toString(),
-                      ),
-                      _pill(
-                        "Confirmadas",
-                        _items.where((e) => e['status'] == 'confirmed').length.toString(),
-                      ),
-                      _pill(
-                        "Completadas",
-                        _items.where((e) => e['status'] == 'completed').length.toString(),
-                      ),
+                      _pill("Canceladas",
+                          _items.where((e) => e['status'] == 'pending').length.toString()),
+                      _pill("Confirmadas",
+                          _items.where((e) => e['status'] == 'confirmed').length.toString()),
+                      _pill("Completadas",
+                          _items.where((e) => e['status'] == 'completed').length.toString()),
                     ],
                   ),
                 ),
@@ -157,7 +191,7 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 20),
 
-              // Lista de citas
+              // LISTA DE CITAS
               if (_loading)
                 const Center(
                   child: Padding(
@@ -182,9 +216,9 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
     );
   }
 
-  // ---------------------------------------------------
+  // ============================================================
   // TARJETA DE CITA
-  // ---------------------------------------------------
+  // ============================================================
   Widget _appointmentCard(Map<String, dynamic> row) {
     return Card(
       elevation: 3,
@@ -206,9 +240,9 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
     );
   }
 
-  // ---------------------------------------------------
-  // TARJETA DE RESUMEN
-  // ---------------------------------------------------
+  // ============================================================
+  // PASTILLA DE RESUMEN
+  // ============================================================
   Widget _pill(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -220,9 +254,9 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
     );
   }
 
-  // ---------------------------------------------------
+  // ============================================================
   // ESTADO EN TEXTO
-  // ---------------------------------------------------
+  // ============================================================
   String _statusLabel(String status) {
     switch (status) {
       case 'pending':
@@ -236,5 +270,77 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
       default:
         return status;
     }
+  }
+
+  // ============================================================
+  // CALENDARIO PERSONALIZADO
+  // ============================================================
+  Widget _calendarWidget() {
+    final firstDay = DateTime(_day.year, _day.month, 1);
+    final lastDay = DateTime(_day.year, _day.month + 1, 0);
+
+    List<Widget> days = [];
+
+    for (int i = 1; i < firstDay.weekday; i++) {
+      days.add(const SizedBox());
+    }
+
+    for (int d = 1; d <= lastDay.day; d++) {
+      final date = DateTime(_day.year, _day.month, d);
+      final hasCita = _diasConCitas.any((c) =>
+      c.year == date.year && c.month == date.month && c.day == date.day);
+
+      days.add(
+        GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+            setState(() => _day = date);
+            _load();
+          },
+          child: Container(
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: hasCita ? Colors.blue.shade100 : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hasCita ? Colors.blue : Colors.grey.shade300,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              d.toString(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: hasCita ? Colors.blue.shade900 : Colors.black,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Seleccionar día",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade700,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GridView.count(
+            crossAxisCount: 7,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: days,
+          ),
+        ],
+      ),
+    );
   }
 }

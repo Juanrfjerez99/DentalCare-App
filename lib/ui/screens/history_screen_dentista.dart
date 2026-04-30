@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/citas_service.dart';
 
-class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+class HistorialDentistaScreen extends StatefulWidget {
+  const HistorialDentistaScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistorialDentistaScreen> createState() => _HistorialDentistaScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistorialDentistaScreenState extends State<HistorialDentistaScreen> {
   List<Map<String, dynamic>> historial = [];
   List<String> deletedIds = [];
   bool loading = true;
@@ -26,7 +25,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // ---------------------------------------------------
   Future<void> _loadDeletedIds() async {
     final prefs = await SharedPreferences.getInstance();
-    deletedIds = prefs.getStringList("deleted_history_ids") ?? [];
+    deletedIds = prefs.getStringList("deleted_history_ids_dentista") ?? [];
     _loadHistorial();
   }
 
@@ -35,33 +34,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // ---------------------------------------------------
   Future<void> _saveDeletedIds() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList("deleted_history_ids", deletedIds);
+    await prefs.setStringList("deleted_history_ids_dentista", deletedIds);
   }
 
   // ---------------------------------------------------
-  // CARGAR HISTORIAL DESDE SUPABASE
+  // CARGAR HISTORIAL DEL DENTISTA
   // ---------------------------------------------------
   Future<void> _loadHistorial() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    try {
+      final data = await CitasService().getCitasDentista();
 
-    final data = await CitasService().getCitasUsuario(user.id);
+      for (var cita in data) {
+        cita['id'] = cita['id_cita'].toString();
+      }
 
-    for (var cita in data) {
-      cita['id'] = cita['id_cita'].toString();
+      final filtradas = data.where((cita) =>
+      (cita['estado'] == 'completada' || cita['estado'] == 'cancelada') &&
+          !deletedIds.contains(cita['id'])
+      ).toList();
+
+      filtradas.sort((a, b) {
+        final fechaA = DateTime.parse("${a['fecha']} ${a['hora']}");
+        final fechaB = DateTime.parse("${b['fecha']} ${b['hora']}");
+        return fechaB.compareTo(fechaA);
+      });
+
+      setState(() {
+        historial = filtradas;
+        loading = false;
+      });
+    } catch (e) {
+      print("ERROR EN HISTORIAL DENTISTA: $e");
+      setState(() => loading = false);
     }
-
-    final filtradas = data.where((cita) =>
-    (cita['estado'] == 'completada' || cita['estado'] == 'cancelada') &&
-        !deletedIds.contains(cita['id'])
-    ).toList();
-
-    filtradas.sort((a, b) => b['fecha'].compareTo(a['fecha']));
-
-    setState(() {
-      historial = filtradas;
-      loading = false;
-    });
   }
 
   // ---------------------------------------------------
@@ -155,7 +160,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Historial",
+                    "Historial de citas",
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -187,10 +192,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   itemBuilder: (context, index) {
                     final item = historial[index];
 
-                    return HistoryItem(
+                    return HistoryItemDentista(
                       tratamiento: item["motivo"] ?? "Cita",
-                      paciente: "Tú",
-                      fecha: item["fecha"].substring(0, 10),
+                      paciente: item["usuario"]?["nombre"] ?? "Paciente",
+                      fecha: item["fecha"]?.toString().split(" ").first ?? "",
+                      hora: item["hora"]?.toString().substring(0, 5) ?? "",
                       estado: item["estado"],
                       onDelete: () => _confirmarEliminarItem(index),
                     );
@@ -208,16 +214,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
 // ---------------------------------------------------
 // TARJETA DE HISTORIAL CON PAPELERA
 // ---------------------------------------------------
-class HistoryItem extends StatelessWidget {
+class HistoryItemDentista extends StatelessWidget {
   final String fecha;
+  final String hora;
   final String paciente;
   final String tratamiento;
   final String estado;
   final VoidCallback onDelete;
 
-  const HistoryItem({
+  const HistoryItemDentista({
     super.key,
     required this.fecha,
+    required this.hora,
     required this.paciente,
     required this.tratamiento,
     required this.estado,
@@ -228,10 +236,7 @@ class HistoryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool esCompletada = estado == "completada";
 
-    final color = esCompletada
-        ? Colors.green.shade700
-        : Colors.red.shade700;
-
+    final color = esCompletada ? Colors.green.shade700 : Colors.red.shade700;
     final icono = esCompletada ? Icons.check : Icons.close;
     final estadoTexto = esCompletada ? "Completada" : "Cancelada";
 
@@ -248,7 +253,7 @@ class HistoryItem extends StatelessWidget {
           child: Icon(icono, color: Colors.white),
         ),
         title: Text(
-          tratamiento,
+          "$hora · $tratamiento",
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text("$paciente • $fecha • $estadoTexto"),

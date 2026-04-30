@@ -14,7 +14,6 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
   DateTime? selectedDay;
 
   List<String> horasOcupadas = [];
-
   List<Map<String, dynamic>> citasUsuario = [];
   bool loadingCitas = true;
 
@@ -24,15 +23,9 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
     _loadCitasUsuario();
   }
 
-  void _loadHorasOcupadas(DateTime date) async {
-    horasOcupadas = await CitasService().getHorasOcupadas(date);
-    _showAvailableHours(date);
-  }
-
-  Future<bool> _isDiaCompleto(DateTime date) async {
-    return await CitasService().diaCompleto(date);
-  }
-
+  // ---------------------------------------------------
+  // CARGAR CITAS DEL USUARIO
+  // ---------------------------------------------------
   void _loadCitasUsuario() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -43,6 +36,18 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
       citasUsuario = data;
       loadingCitas = false;
     });
+  }
+
+  // ---------------------------------------------------
+  // CARGAR HORAS OCUPADAS
+  // ---------------------------------------------------
+  void _loadHorasOcupadas(DateTime date) async {
+    horasOcupadas = await CitasService().getHorasOcupadas(date);
+    _showAvailableHours(date);
+  }
+
+  Future<bool> _isDiaCompleto(DateTime date) async {
+    return await CitasService().diaCompleto(date);
   }
 
   @override
@@ -96,31 +101,47 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
               Expanded(
                 child: loadingCitas
                     ? const Center(child: CircularProgressIndicator())
-                    : citasUsuario.isEmpty
-                    ? const Center(
-                  child: Text(
-                    "No tienes citas próximas",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-                    : ListView.builder(
-                  itemCount: citasUsuario.length,
-                  itemBuilder: (context, index) {
-                    final cita = citasUsuario[index];
-
-                    return _appointmentCard(
-                      hora: cita['hora'],
-                      paciente: "Tú",
-                      motivo: cita['motivo'] ?? "Cita programada",
-                      fecha: cita['fecha'],
-                    );
-                  },
-                ),
+                    : _buildProximasCitas(),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // ---------------------------------------------------
+  // LISTA DE PRÓXIMAS CITAS (FILTRADA)
+  // ---------------------------------------------------
+  Widget _buildProximasCitas() {
+    final citasFiltradas = citasUsuario
+        .where((c) =>
+    c['estado'] == 'pendiente' ||
+        c['estado'] == 'confirmada')
+        .toList();
+
+    if (citasFiltradas.isEmpty) {
+      return const Center(
+        child: Text(
+          "No tienes citas próximas",
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: citasFiltradas.length,
+      itemBuilder: (context, index) {
+        final cita = citasFiltradas[index];
+
+        return _appointmentCard(
+          hora: cita['hora'].toString().substring(0, 5),
+          paciente: "Tú",
+          motivo: cita['motivo'] ?? "Cita pendiente",
+          estado: cita['estado'],
+          fecha: cita['fecha'],
+        );
+      },
     );
   }
 
@@ -165,7 +186,7 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
   }
 
   // ---------------------------------------------------
-  // CALENDARIO MENSUAL (ACTUALIZADO)
+  // CALENDARIO
   // ---------------------------------------------------
   Widget _buildCalendarMonth() {
     final firstDay = DateTime(currentMonth.year, currentMonth.month, 1);
@@ -326,14 +347,10 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
                         return;
                       }
 
-                      final userId = user.id;
-                      final dentistaId = 1;
-
                       await CitasService().crearCita(
                         fecha: date,
                         hora: hora,
-                        userId: userId,
-                        dentistaId: dentistaId,
+                        userId: user.id,
                       );
 
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +358,6 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
                       );
 
                       _loadCitasUsuario();
-                      setState(() {});
                     },
                     child: Text(hora),
                   );
@@ -361,6 +377,7 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
     required String hora,
     required String paciente,
     required String motivo,
+    required String estado,
     String? fecha,
   }) {
     return Card(
@@ -379,11 +396,29 @@ class _AppointmentsClienteScreenState extends State<AppointmentsClienteScreen> {
         title: Text(paciente),
         subtitle: Text(
           fecha != null
-              ? "${fecha.substring(0, 10)} · $motivo"
-              : motivo,
+              ? "${fecha.substring(0, 10)} · ${_estadoLabel(estado)}"
+              : _estadoLabel(estado),
         ),
       ),
     );
+  }
+
+  // ---------------------------------------------------
+  // ESTADO -- TEXTO
+  // ---------------------------------------------------
+  String _estadoLabel(String estado) {
+    switch (estado) {
+      case 'pendiente':
+        return 'Cita pendiente';
+      case 'confirmada':
+        return 'Cita confirmada';
+      case 'cancelada':
+        return 'Cita cancelada';
+      case 'completada':
+        return 'Cita completada';
+      default:
+        return estado;
+    }
   }
 }
 

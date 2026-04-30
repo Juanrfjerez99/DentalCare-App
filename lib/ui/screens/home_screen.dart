@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'appointments_cliente_screen.dart';
 import 'appointments_dentista_screen.dart';
 import 'history_screen.dart';
+import 'history_screen_dentista.dart';
 import 'chat_screen.dart';
 import 'settings_screen.dart';
 
@@ -28,8 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
       widget.isAdmin
           ? AppointmentsDentistaScreen()
           : AppointmentsClienteScreen(),
-      const HistoryScreen(),
-      const ChatScreen(),
+      widget.isAdmin
+          ? const HistorialDentistaScreen()
+          : const HistoryScreen(),      const ChatScreen(),
       const SettingsScreen(),
     ];
   }

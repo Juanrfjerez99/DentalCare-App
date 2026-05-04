@@ -409,6 +409,21 @@ class _AppointmentsDentistaScreenState extends State<AppointmentsDentistaScreen>
 
               const SizedBox(height: 16),
 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Expanded(child: Center(child: Text("L"))),
+                  Expanded(child: Center(child: Text("M"))),
+                  Expanded(child: Center(child: Text("X"))),
+                  Expanded(child: Center(child: Text("J"))),
+                  Expanded(child: Center(child: Text("V"))),
+                  Expanded(child: Center(child: Text("S"))),
+                  Expanded(child: Center(child: Text("D"))),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
               GridView.count(
                 crossAxisCount: 7,
                 shrinkWrap: true,
